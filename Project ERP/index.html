@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERP Analytics</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-base: #f1f5f9;
+            --text-main: #334155;
+            --text-muted: #64748b;
+            --text-title: #0f172a;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --border-glass: rgba(255, 255, 255, 0.6);
+            --bg-glass: rgba(255, 255, 255, 0.65);
+            --bg-input: rgba(255, 255, 255, 0.8);
+            --table-header: rgba(248, 250, 252, 0.8);
+            --table-hover: rgba(255, 255, 255, 0.5);
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.04);
+            
+            --shape-1: rgba(37, 99, 235, 0.15);
+            --shape-2: rgba(16, 185, 129, 0.15);
+            --shape-3: rgba(139, 92, 246, 0.15);
+            --pattern-color: rgba(37, 99, 235, 0.05);
+            
+            --chart-border: #ffffff;
+        }
+
+        body.dark-theme {
+            --bg-base: #0f172a;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-title: #f8fafc;
+            --accent: #3b82f6;
+            --accent-hover: #60a5fa;
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --bg-glass: rgba(15, 23, 42, 0.55);
+            --bg-input: rgba(15, 23, 42, 0.6);
+            --table-header: rgba(15, 23, 42, 0.8);
+            --table-hover: rgba(255, 255, 255, 0.05);
+            --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
+            
+            --shape-1: rgba(37, 99, 235, 0.35);
+            --shape-2: rgba(16, 185, 129, 0.25);
+            --shape-3: rgba(99, 102, 241, 0.3);
+            --pattern-color: rgba(255, 255, 255, 0.02);
+            
+            --chart-border: #1e293b;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-base); color: var(--text-main); padding: 30px 20px; min-height: 100vh; position: relative; overflow-x: hidden; }
+
+        .bg-pattern { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -2; pointer-events: none; background-image: linear-gradient(var(--pattern-color) 1px, transparent 1px), linear-gradient(90deg, var(--pattern-color) 1px, transparent 1px); background-size: 30px 30px; }
+        .bg-shapes { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; pointer-events: none; }
+        .shape { position: absolute; filter: blur(80px); border-radius: 50%; opacity: 0.8; animation: float 15s infinite alternate ease-in-out; }
+        .shape-1 { background: var(--shape-1); width: 500px; height: 500px; top: -100px; left: -100px; }
+        .shape-2 { background: var(--shape-2); width: 600px; height: 600px; bottom: -150px; right: -100px; animation-delay: -5s; }
+        .shape-3 { background: var(--shape-3); width: 400px; height: 400px; top: 30%; left: 40%; animation-delay: -10s; }
+
+        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 50% { transform: translate(50px, 30px) scale(1.1); } 100% { transform: translate(-30px, 50px) scale(0.9); } }
+
+        .glass-panel { background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border-glass); box-shadow: var(--shadow-glass); border-radius: 16px; padding: 24px; }
+
+        .header { display: flex; justify-content: space-between; align-items: center; max-width: 1400px; margin: 0 auto 20px auto; }
+        .header-title { display: flex; align-items: center; gap: 12px; font-size: 1.5rem; font-weight: 600; color: var(--text-title); }
+        .header-actions { display: flex; gap: 12px; align-items: center; }
+
+        .nav-tabs { display: flex; gap: 10px; max-width: 1400px; margin: 0 auto 24px auto; }
+        .tab-btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; background: transparent; color: var(--text-muted); transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+        .tab-btn:hover { color: var(--text-title); background: var(--table-hover); }
+        .tab-btn.active { background: var(--bg-glass); color: var(--accent); border: 1px solid var(--border-glass); box-shadow: var(--shadow-glass); backdrop-filter: blur(16px); }
+
+        .view-section { display: none; animation: fadeIn 0.4s ease; }
+        .view-section.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .btn { display: flex; align-items: center; gap: 8px; padding: 10px 18px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; }
+        .btn-primary { background-color: var(--accent); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+        .btn-primary:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
+        .btn-success { background-color: var(--success); color: white; }
+        .btn-warning { background-color: var(--warning); color: white; }
+        .btn-danger { background-color: var(--danger); color: white; }
+        .btn-outline { background-color: var(--bg-glass); color: var(--text-main); border: 1px solid var(--border-glass); backdrop-filter: blur(8px); }
+        .btn-outline:hover { background-color: var(--table-hover); transform: translateY(-2px); }
+
+        .dropdown { position: relative; display: inline-block; }
+        .dropdown-content { display: none; position: absolute; right: 0; margin-top: 8px; background: var(--bg-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border-glass); border-radius: 12px; box-shadow: var(--shadow-glass); min-width: 200px; z-index: 100; overflow: hidden; }
+        .dropdown-content.show { display: block; animation: fadeIn 0.2s ease; }
+        .dropdown-content button { width: 100%; text-align: left; background: none; border: none; color: var(--text-main); padding: 12px 16px; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: 0.2s; }
+        .dropdown-content button:hover { background-color: var(--table-hover); color: var(--accent); }
+
+        .grid-layout { display: grid; grid-template-columns: 320px 1fr; gap: 24px; max-width: 1400px; margin: 0 auto; }
+        .form-grid { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+        .input-group label { display: block; margin-bottom: 6px; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
+        input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border-glass); background-color: var(--bg-input); color: var(--text-main); font-size: 0.95rem; outline: none; }
+        input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-filter, none); }
+        body.dark-theme input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+        .panel-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-glass); color: var(--text-title); }
+        .panel-title-left { display: flex; align-items: center; gap: 8px; }
+        .panel-title-right { display: flex; align-items: center; gap: 10px; }
+
+        .filtro-mes { background: var(--bg-glass); color: var(--text-main); border: 1px solid var(--border-glass); padding: 8px 12px; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 500; outline: none; cursor: pointer; backdrop-filter: blur(4px); transition: 0.2s; }
+        .filtro-mes:hover { border-color: var(--accent); }
+        body.dark-theme .filtro-mes option { background-color: #1e293b; color: #f8fafc; }
+
+        .table-container { overflow-y: auto; max-height: 480px; }
+        .table-container-full { max-height: 600px; }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; text-align: left; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid var(--border-glass); }
+        th { background-color: var(--table-header); backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; font-weight: 600; font-size: 0.85rem; color: var(--text-muted); text-transform: uppercase; cursor: pointer; user-select: none; }
+        th:hover { color: var(--text-title); }
+        th div { display: flex; align-items: center; gap: 6px; }
+        .clickable-row { cursor: pointer; transition: background-color 0.2s; }
+        .clickable-row:hover { background-color: var(--table-hover); }
+
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; display: inline-block; }
+        .vencido { background-color: rgba(239, 68, 68, 0.15); color: var(--danger); border: 1px solid rgba(239, 68, 68, 0.3); }
+        .alerta { background-color: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .normal { background-color: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .badge-entrada { background-color: rgba(16, 185, 129, 0.15); color: var(--success); }
+        .badge-saida { background-color: rgba(37, 99, 235, 0.15); color: var(--accent); }
+        .badge-desperdicio { background-color: rgba(239, 68, 68, 0.15); color: var(--danger); }
+        .badge-alerta { background-color: rgba(245, 158, 11, 0.15); color: var(--warning); }
+
+        .action-btns { display: flex; gap: 8px; }
+        .icon-btn { background: none; border: none; cursor: pointer; color: var(--text-muted); padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+        .icon-btn:hover { background-color: var(--table-hover); color: var(--text-title); }
+        .icon-btn.delete:hover { color: var(--danger); background-color: rgba(239, 68, 68, 0.1); }
+        .icon-btn.move:hover { color: var(--accent); background-color: rgba(37, 99, 235, 0.1); }
+
+        .charts-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 24px; max-width: 1400px; margin: 24px auto 0 auto; }
+        .charts-full { display: grid; grid-template-columns: 1fr; gap: 24px; max-width: 1400px; margin: 24px auto 40px auto; }
+        .chart-box { height: 300px; position: relative; display: flex; justify-content: center; align-items: center; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); display: none; justify-content: center; align-items: center; z-index: 1000; opacity: 0; transition: opacity 0.3s; }
+        .modal-overlay.active { display: flex; opacity: 1; }
+        .modal-content { background: var(--bg-glass); backdrop-filter: blur(20px); border: 1px solid var(--border-glass); border-radius: 16px; padding: 30px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.3); transform: translateY(20px); transition: transform 0.3s; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { color: var(--text-title); }
+        .close-modal { background: none; border: none; color: var(--text-muted); cursor: pointer; }
+        .movimento-botoes { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
+        
+        #fullscreen-container.fullscreen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; margin: 0; border-radius: 0; display: flex; flex-direction: column; background: var(--bg-glass); backdrop-filter: blur(20px); }
+        #fullscreen-container.fullscreen .table-container { max-height: calc(100vh - 100px); flex-grow: 1; }
+    </style>
+</head>
+<body>
+
+<div class="bg-pattern"></div>
+<div class="bg-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+    <div class="shape shape-3"></div>
+</div>
+
+<div class="header">
+    <div class="header-title"><i data-lucide="layers"></i> ERP Analytics</div>
+    <div class="header-actions">
+        <button class="btn btn-outline" onclick="toggleTema()" title="Alternar Tema">
+            <i data-lucide="moon" size="18" id="icone-tema"></i> Tema
+        </button>
+        
+        <div class="dropdown">
+            <button class="btn btn-outline dropbtn" onclick="toggleDropdown()">
+                <i data-lucide="download-cloud" size="18" style="pointer-events: none;"></i> 
+                Importar 
+                <i data-lucide="chevron-down" size="16" style="pointer-events: none;"></i>
+            </button>
+            <div class="dropdown-content" id="importDropdown">
+                <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="processarCSV(event)">
+                <button onclick="document.getElementById('csvFileInput').click()">
+                    <i data-lucide="file-spreadsheet" size="18"></i> Ficheiro CSV Local
+                </button>
+                <button onclick="alert('Módulo de Integração com Sistema Online em desenvolvimento!')">
+                    <i data-lucide="globe" size="18"></i> Sistema Online (API)
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchView('inventario')" id="tab-inventario">
+        <i data-lucide="package" size="18"></i> Painel de Estoque
+    </button>
+    <button class="tab-btn" onclick="switchView('historico')" id="tab-historico">
+        <i data-lucide="history" size="18"></i> Histórico e Movimentações
+    </button>
+</div>
+
+<div id="view-inventario" class="view-section active">
+    <div class="grid-layout">
+        <div class="glass-panel">
+            <div class="panel-title">
+                <div class="panel-title-left">
+                    <i data-lucide="plus-circle" size="20" id="icone-form"></i> 
+                    <span id="titulo-form">Novo Produto</span>
+                </div>
+            </div>
+            <div class="form-grid">
+                <div class="input-group"><label>Nome</label><input type="text" id="nome"></div>
+                <div class="input-group"><label>Categoria</label><input type="text" id="categoria"></div>
+                <div class="input-group"><label>Lote</label><input type="text" id="lote" placeholder="Ex: Lote 03/2026"></div>
+                <div class="input-group"><label>Quantidade Inicial</label><input type="number" id="quantidade"></div>
+                <div class="input-group"><label>Validade</label><input type="date" id="validade"></div>
+                <div class="input-group"><label>Entrada</label><input type="date" id="entrada"></div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; width: 100%;">
+                <button class="btn btn-primary" id="btn-acao-form" style="flex: 1; justify-content: center;" onclick="salvarFormulario()">
+                    <i data-lucide="save" size="18" id="icone-btn-form"></i> <span id="texto-btn-form">Registrar</span>
+                </button>
+                <button class="btn btn-outline" id="btn-cancelar-form" style="display: none; justify-content: center; padding: 10px;" onclick="cancelarEdicao()" title="Cancelar Edição">
+                    <i data-lucide="x" size="18"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="glass-panel" id="fullscreen-container">
+            <div class="panel-title">
+                <div class="panel-title-left">
+                    <i data-lucide="list" size="20"></i> Inventário Ativo
+                    <span style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted); margin-left: 10px;">(Clique na linha para editar)</span>
+                </div>
+                <div class="panel-title-right">
+                    <select id="filtroMesInventario" class="filtro-mes" onchange="processarERenderizar()">
+                        <option value="todos">Todos os Meses</option>
+                    </select>
+                    <button class="icon-btn" onclick="toggleFullScreen()" title="Expandir Tabela">
+                        <i data-lucide="maximize" size="18" id="icone-fullscreen"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table id="tabela-produtos">
+                    <thead>
+                        <tr>
+                            <th onclick="ordenarTabela('nome')"><div>Produto <i data-lucide="arrow-up-down" size="14"></i></div></th>
+                            <th onclick="ordenarTabela('categoria')"><div>Categoria <i data-lucide="arrow-up-down" size="14"></i></div></th>
+                            <th onclick="ordenarTabela('lote')"><div>Lote <i data-lucide="arrow-up-down" size="14"></i></div></th>
+                            <th onclick="ordenarTabela('quantidade')"><div>Qtd <i data-lucide="arrow-up-down" size="14"></i></div></th>
+                            <th onclick="ordenarTabela('validade')"><div>Validade <i data-lucide="arrow-up-down" size="14"></i></div></th>
+                            <th><div>Status</div></th>
+                            <th><div>Ações</div></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-grid">
+        <div class="glass-panel chart-box"><canvas id="graficoStatus"></canvas></div>
+        <div class="glass-panel chart-box"><canvas id="graficoCategoria"></canvas></div>
+    </div>
+    <div class="charts-full">
+        <div class="glass-panel chart-box"><canvas id="graficoTendencia"></canvas></div>
+    </div>
+</div>
+
+<div id="view-historico" class="view-section">
+    <div class="glass-panel" style="max-width: 1400px; margin: 0 auto;">
+        <div class="panel-title">
+            <div class="panel-title-left"><i data-lucide="activity" size="20"></i> Registro de Movimentações</div>
+            <div class="panel-title-right">
+                <select id="filtroMesHistorico" class="filtro-mes" onchange="renderizarHistoricoFiltrado()">
+                    <option value="todos">Todos os Meses</option>
+                </select>
+            </div>
+        </div>
+        <div class="table-container table-container-full">
+            <table id="tabela-historico">
+                <thead>
+                    <tr>
+                        <th><div>Data e Hora</div></th>
+                        <th><div>Produto</div></th>
+                        <th><div>Tipo</div></th>
+                        <th><div>Qtd</div></th>
+                        <th><div>Motivo / Observação</div></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="modalMovimento" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Movimentar Estoque</h3>
+            <button class="close-modal" onclick="fecharModal()"><i data-lucide="x" size="20"></i></button>
+        </div>
+        <p style="color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem;">
+            Produto: <strong id="modalProdutoNome" style="color: var(--text-title);">---</strong><br>
+            Estoque Atual: <strong id="modalProdutoQtd" style="color: var(--accent); font-size: 1.1rem;">---</strong>
+        </p>
+        
+        <div class="input-group" style="margin-bottom: 15px;">
+            <label>Quantidade:</label>
+            <input type="number" id="inputMovimentoQtd" min="1" value="1" style="font-size: 1.2rem; text-align: center;">
+        </div>
+        
+        <div class="input-group">
+            <label>Motivo / Observação:</label>
+            <input type="text" id="inputMovimentoMotivo" placeholder="Ex: Venda balcão, Venceu, Quebrou..." style="font-size: 0.95rem;">
+        </div>
+
+        <div class="movimento-botoes">
+            <button class="btn btn-success" style="justify-content: center;" onclick="salvarMovimento('entrada')">
+                <i data-lucide="arrow-down-to-line" size="18"></i> Registrar Entrada
+            </button>
+            <button class="btn btn-primary" style="justify-content: center;" onclick="salvarMovimento('saida')">
+                <i data-lucide="arrow-up-from-line" size="18"></i> Registrar Saída
+            </button>
+            <button class="btn btn-danger" style="justify-content: center;" onclick="salvarMovimento('desperdicio')">
+                <i data-lucide="alert-triangle" size="18"></i> Registrar Desperdício
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    lucide.createIcons();
+    document.getElementById('entrada').valueAsDate = new Date();
+    
+    let graficoStatus, graficoCategoria, graficoTendencia;
+    let produtosGlobais = [];
+    let historicoGlobal = [];
+    let contagemGlobal = { normal: 0, alerta: 0, vencido: 0 };
+    let categoriasGlobal = {};
+    let ordemAtual = { coluna: '', asc: true };
+    
+    let produtoSelecionadoMovimento = null;
+    let editandoId = null;
+
+    function toggleDropdown() { document.getElementById("importDropdown").classList.toggle("show"); }
+    window.onclick = function(event) {
+        if (!event.target.matches('.dropbtn') && !event.target.closest('.dropbtn')) {
+            const dropdowns = document.getElementsByClassName("dropdown-content");
+            for (let i = 0; i < dropdowns.length; i++) {
+                if (dropdowns[i].classList.contains('show')) dropdowns[i].classList.remove('show');
+            }
+        }
+    }
+
+    function switchView(view) {
+        document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+        document.getElementById(`view-${view}`).classList.add('active');
+        document.getElementById(`tab-${view}`).classList.add('active');
+        if(view === 'historico') carregarHistorico();
+    }
+
+    function toggleFullScreen() {
+        const container = document.getElementById('fullscreen-container');
+        const icone = document.getElementById('icone-fullscreen');
+        container.classList.toggle('fullscreen');
+        if(container.classList.contains('fullscreen')) {
+            icone.setAttribute('data-lucide', 'minimize');
+            document.body.style.overflow = 'hidden';
+        } else {
+            icone.setAttribute('data-lucide', 'maximize');
+            document.body.style.overflow = 'auto';
+        }
+        lucide.createIcons();
+    }
+
+    function toggleTema() {
+        document.body.classList.toggle('dark-theme');
+        const isDark = document.body.classList.contains('dark-theme');
+        document.getElementById('icone-tema').setAttribute('data-lucide', isDark ? 'sun' : 'moon');
+        lucide.createIcons();
+        atualizarGraficos(); 
+    }
+
+    function calcularStatus(dataValidade) {
+        const validade = new Date(dataValidade);
+        const hoje = new Date();
+        hoje.setHours(0,0,0,0);
+        const diffDias = Math.ceil((validade - hoje) / (1000 * 60 * 60 * 24));
+        if (diffDias < 0) return { html: `<span class="badge vencido">Vencido</span>`, tipo: 'vencido' };
+        if (diffDias <= 7) return { html: `<span class="badge alerta">Vence em ${diffDias} dias</span>`, tipo: 'alerta' };
+        return { html: `<span class="badge normal">Válido</span>`, tipo: 'normal' };
+    }
+
+    function popularFiltroMeses(dados, selectId, campoData) {
+        const select = document.getElementById(selectId);
+        const valorAtual = select.value;
+        select.innerHTML = '<option value="todos">Todos os Meses</option>';
+        const meses = new Set();
+        dados.forEach(item => { if (item[campoData]) meses.add(item[campoData].substring(0, 7)); });
+        Array.from(meses).sort().reverse().forEach(anoMes => {
+            const [ano, mes] = anoMes.split('-');
+            const option = document.createElement('option');
+            option.value = anoMes; option.textContent = `${mes}/${ano}`;
+            select.appendChild(option);
+        });
+        if (Array.from(meses).includes(valorAtual)) select.value = valorAtual;
+    }
+
+    async function carregarDados() {
+        const res = await fetch('/api/produtos');
+        produtosGlobais = await res.json();
+        popularFiltroMeses(produtosGlobais, 'filtroMesInventario', 'entrada');
+        
+        const resHist = await fetch('/api/movimentacoes');
+        historicoGlobal = await resHist.json();
+        
+        processarERenderizar();
+    }
+
+    async function carregarHistorico() {
+        const res = await fetch('/api/movimentacoes');
+        historicoGlobal = await res.json();
+        popularFiltroMeses(historicoGlobal, 'filtroMesHistorico', 'data_hora');
+        renderizarHistoricoFiltrado();
+    }
+
+    function renderizarHistoricoFiltrado() {
+        const filtro = document.getElementById('filtroMesHistorico').value;
+        const historicoFiltrado = historicoGlobal.filter(m => filtro === 'todos' || m.data_hora.startsWith(filtro));
+        const tbody = document.querySelector('#tabela-historico tbody');
+        tbody.innerHTML = '';
+        historicoFiltrado.forEach(m => {
+            let badgeClass = 'badge-entrada'; let tipoNome = 'Entrada';
+            if(m.tipo === 'saida') { badgeClass = 'badge-saida'; tipoNome = 'Saída'; }
+            if(m.tipo === 'desperdicio') { badgeClass = 'badge-desperdicio'; tipoNome = 'Desperdício'; }
+            if(m.tipo === 'ajuste') { badgeClass = 'badge-alerta'; tipoNome = 'Ajuste Manual'; }
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="color: var(--text-muted); font-size: 0.9rem;">${m.data_hora}</td>
+                <td style="font-weight: 500;">${m.produto_nome}</td>
+                <td><span class="badge ${badgeClass}">${tipoNome}</span></td>
+                <td style="font-weight: bold;">${m.quantidade}</td>
+                <td>${m.motivo || '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function ordenarTabela(coluna) {
+        if (ordemAtual.coluna === coluna) ordemAtual.asc = !ordemAtual.asc;
+        else { ordemAtual.coluna = coluna; ordemAtual.asc = true; }
+        produtosGlobais.sort((a, b) => {
+            let valA = a[coluna]; let valB = b[coluna];
+            if (coluna === 'quantidade') { valA = parseFloat(valA); valB = parseFloat(valB); } 
+            else { valA = String(valA).toLowerCase(); valB = String(valB).toLowerCase(); }
+            if (valA < valB) return ordemAtual.asc ? -1 : 1;
+            if (valA > valB) return ordemAtual.asc ? 1 : -1;
+            return 0;
+        });
+        processarERenderizar();
+    }
+
+    function processarERenderizar() {
+        const filtro = document.getElementById('filtroMesInventario').value;
+        const produtosFiltrados = produtosGlobais.filter(p => filtro === 'todos' || p.entrada.startsWith(filtro));
+        const tbody = document.querySelector('#tabela-produtos tbody');
+        tbody.innerHTML = '';
+        contagemGlobal = { normal: 0, alerta: 0, vencido: 0 };
+        categoriasGlobal = {};
+
+        produtosFiltrados.forEach(p => {
+            const status = calcularStatus(p.validade);
+            contagemGlobal[status.tipo]++;
+            categoriasGlobal[p.categoria] = (categoriasGlobal[p.categoria] || 0) + p.quantidade;
+
+            const tr = document.createElement('tr');
+            tr.className = "clickable-row";
+            tr.onclick = function() { carregarParaEdicao(p); };
+            tr.innerHTML = `
+                <td style="font-weight: 500;">${p.nome}</td>
+                <td>${p.categoria}</td>
+                <td style="color: var(--text-muted); font-size: 0.9rem;">${p.lote}</td>
+                <td><strong style="color: var(--text-title);">${p.quantidade}</strong></td>
+                <td>${p.validade}</td>
+                <td>${status.html}</td>
+                <td class="action-btns" onclick="event.stopPropagation()">
+                    <button class="icon-btn move" onclick="abrirModalMovimento(${p.id}, '${p.nome}', ${p.quantidade})" title="Movimentar">
+                        <i data-lucide="arrow-left-right" size="18"></i>
+                    </button>
+                    <button class="icon-btn delete" onclick="excluirProduto(${p.id})" title="Excluir">
+                        <i data-lucide="trash-2" size="18"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        lucide.createIcons();
+        atualizarGraficos(); 
+    }
+
+    function carregarParaEdicao(produto) {
+        editandoId = produto.id;
+        document.getElementById('nome').value = produto.nome; document.getElementById('categoria').value = produto.categoria;
+        document.getElementById('lote').value = produto.lote; document.getElementById('quantidade').value = produto.quantidade;
+        document.getElementById('validade').value = produto.validade; document.getElementById('entrada').value = produto.entrada;
+        document.getElementById('titulo-form').textContent = "Modificar Produto"; document.getElementById('icone-form').setAttribute('data-lucide', 'edit');
+        const btnAcao = document.getElementById('btn-acao-form'); btnAcao.classList.remove('btn-primary'); btnAcao.classList.add('btn-warning');
+        document.getElementById('icone-btn-form').setAttribute('data-lucide', 'refresh-cw'); document.getElementById('texto-btn-form').textContent = "Atualizar";
+        document.getElementById('btn-cancelar-form').style.display = "flex";
+        lucide.createIcons(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicao() {
+        editandoId = null;
+        document.getElementById('nome').value = ''; document.getElementById('categoria').value = ''; document.getElementById('lote').value = '';
+        document.getElementById('quantidade').value = ''; document.getElementById('validade').value = ''; document.getElementById('entrada').valueAsDate = new Date();
+        document.getElementById('titulo-form').textContent = "Novo Produto"; document.getElementById('icone-form').setAttribute('data-lucide', 'plus-circle');
+        const btnAcao = document.getElementById('btn-acao-form'); btnAcao.classList.remove('btn-warning'); btnAcao.classList.add('btn-primary');
+        document.getElementById('icone-btn-form').setAttribute('data-lucide', 'save'); document.getElementById('texto-btn-form').textContent = "Registrar";
+        document.getElementById('btn-cancelar-form').style.display = "none";
+        lucide.createIcons();
+    }
+
+    function abrirModalMovimento(id, nome, qtd) {
+        produtoSelecionadoMovimento = { id, nome, qtd };
+        document.getElementById('modalProdutoNome').textContent = nome; document.getElementById('modalProdutoQtd').textContent = qtd;
+        document.getElementById('inputMovimentoQtd').value = 1; document.getElementById('inputMovimentoMotivo').value = '';
+        document.getElementById('modalMovimento').classList.add('active');
+    }
+
+    function fecharModal() { document.getElementById('modalMovimento').classList.remove('active'); produtoSelecionadoMovimento = null; }
+
+    function salvarMovimento(tipo) {
+        const qtd = parseFloat(document.getElementById('inputMovimentoQtd').value);
+        const motivo = document.getElementById('inputMovimentoMotivo').value || (tipo === 'entrada' ? 'Reposição' : (tipo === 'saida' ? 'Venda' : 'Descarte'));
+        if (isNaN(qtd) || qtd <= 0) return alert("Quantidade inválida.");
+        if ((tipo === 'saida' || tipo === 'desperdicio') && qtd > produtoSelecionadoMovimento.qtd) return alert("Erro: Quantidade excede o estoque atual!");
+        enviarRequisicao('/api/movimentar', { id: produtoSelecionadoMovimento.id, tipo: tipo, quantidade: qtd, motivo: motivo }).then(() => fecharModal());
+    }
+
+    function processarDadosTendencia() {
+        const ultimosDias = {};
+        historicoGlobal.forEach(m => {
+            const dataStr = m.data_hora.split(' ')[0];
+            if(!ultimosDias[dataStr]) ultimosDias[dataStr] = { entrada: 0, saida: 0, desperdicio: 0 };
+            if (m.tipo === 'entrada') ultimosDias[dataStr].entrada += m.quantidade;
+            if (m.tipo === 'saida') ultimosDias[dataStr].saida += m.quantidade;
+            if (m.tipo === 'desperdicio') ultimosDias[dataStr].desperdicio += m.quantidade;
+        });
+        
+        const sortedDates = Object.keys(ultimosDias).sort().slice(-14);
+        return {
+            labels: sortedDates,
+            entradas: sortedDates.map(d => ultimosDias[d].entrada),
+            saidas: sortedDates.map(d => ultimosDias[d].saida),
+            desperdicios: sortedDates.map(d => ultimosDias[d].desperdicio)
+        };
+    }
+
+    function atualizarGraficos() {
+        const isDark = document.body.classList.contains('dark-theme');
+        const colorTitle = isDark ? '#f8fafc' : '#0f172a';
+        const colorGrid = isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+        const chartBorder = getComputedStyle(document.documentElement).getPropertyValue('--chart-border').trim();
+        
+        Chart.defaults.font.family = "'Inter', sans-serif"; 
+        Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
+        
+        const paletteNormal = ['rgba(16, 185, 129, 0.6)', 'rgba(37, 99, 235, 0.6)', 'rgba(139, 92, 246, 0.6)', 'rgba(245, 158, 11, 0.6)'];
+        const borderNormal = ['rgba(16, 185, 129, 1)', 'rgba(37, 99, 235, 1)', 'rgba(139, 92, 246, 1)', 'rgba(245, 158, 11, 1)'];
+        
+        if(graficoStatus) graficoStatus.destroy();
+        const ctxStatus = document.getElementById('graficoStatus').getContext('2d');
+        graficoStatus = new Chart(ctxStatus, {
+            type: 'doughnut',
+            data: { 
+                labels: ['Válidos', 'Alerta', 'Vencidos/Risco'], 
+                datasets: [{ 
+                    data: [contagemGlobal.normal, contagemGlobal.alerta, contagemGlobal.vencido], 
+                    backgroundColor: ['rgba(16, 185, 129, 0.5)', 'rgba(245, 158, 11, 0.5)', 'rgba(239, 68, 68, 0.5)'], 
+                    borderColor: ['rgba(16, 185, 129, 1)', 'rgba(245, 158, 11, 1)', 'rgba(239, 68, 68, 1)'],
+                    borderWidth: 2, 
+                    borderRadius: 6,
+                    hoverOffset: 8 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                cutout: '75%', 
+                plugins: { 
+                    title: { display: true, text: 'Saúde Financeira do Estoque', color: colorTitle, font: {size: 14, weight: '600'} }, 
+                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } } 
+                } 
+            }
+        });
+
+        if(graficoCategoria) graficoCategoria.destroy();
+        const ctxCat = document.getElementById('graficoCategoria').getContext('2d');
+        const catLabels = Object.keys(categoriasGlobal);
+        const catColorsBg = catLabels.map((_, i) => paletteNormal[i % paletteNormal.length]);
+        const catColorsBorder = catLabels.map((_, i) => borderNormal[i % borderNormal.length]);
+
+        graficoCategoria = new Chart(ctxCat, {
+            type: 'bar',
+            data: { 
+                labels: catLabels, 
+                datasets: [{ 
+                    label: 'Volume Físico', 
+                    data: Object.values(categoriasGlobal), 
+                    backgroundColor: catColorsBg, 
+                    borderColor: catColorsBorder,
+                    borderWidth: 1,
+                    borderRadius: 6, 
+                    barThickness: 25 
+                }] 
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    title: { display: true, text: 'Distribuição de Carga por Categoria', color: colorTitle, font: {size: 14, weight: '600'} }, 
+                    legend: {display: false} 
+                }, 
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: colorGrid }, border: { display: false } }, 
+                    x: { grid: { display: false }, border: { display: false } } 
+                } 
+            }
+        });
+
+        const dadosTendencia = processarDadosTendencia();
+        if(graficoTendencia) graficoTendencia.destroy();
+        const ctxTend = document.getElementById('graficoTendencia').getContext('2d');
+        graficoTendencia = new Chart(ctxTend, {
+            type: 'line',
+            data: {
+                labels: dadosTendencia.labels,
+                datasets: [
+                    { label: 'Entradas (Reposição)', data: dadosTendencia.entradas, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, tension: 0.4, borderWidth: 2 },
+                    { label: 'Saídas (Vendas)', data: dadosTendencia.saidas, borderColor: '#3b82f6', backgroundColor: 'rgba(37, 99, 235, 0.1)', fill: true, tension: 0.4, borderWidth: 2 },
+                    { label: 'Desperdícios (Prejuízo)', data: dadosTendencia.desperdicios, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.4, borderWidth: 2 }
+                ]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                plugins: { 
+                    title: { display: true, text: 'Fluxo de Movimentações (Últimos 14 dias)', color: colorTitle, font: {size: 14, weight: '600'} }, 
+                    legend: { position: 'top', labels: { usePointStyle: true, padding: 15 } } 
+                }, 
+                scales: { 
+                    y: { beginAtZero: true, grid: { color: colorGrid }, border: { display: false } }, 
+                    x: { grid: { display: false }, border: { display: false } } 
+                } 
+            }
+        });
+    }
+
+    async function enviarRequisicao(url, dados) {
+        try {
+            const resposta = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(dados) });
+            if (!resposta.ok) { alert("🚨 Erro interno no Python!"); return; }
+            carregarDados();
+        } catch (erro) { alert("❌ Servidor Python desligado."); }
+    }
+
+    function salvarFormulario() {
+        const dados = {
+            nome: document.getElementById('nome').value, categoria: document.getElementById('categoria').value,
+            lote: document.getElementById('lote').value || 'S/Lote', quantidade: parseFloat(document.getElementById('quantidade').value),
+            validade: document.getElementById('validade').value, entrada: document.getElementById('entrada').value
+        };
+        if(!dados.nome || isNaN(dados.quantidade) || !dados.validade) return alert("Preencha os campos obrigatórios.");
+        if(editandoId) { dados.id = editandoId; enviarRequisicao('/api/editar', dados).then(() => cancelarEdicao()); } 
+        else { enviarRequisicao('/api/adicionar', dados).then(() => cancelarEdicao()); }
+    }
+
+    function excluirProduto(id) { if (confirm("Confirmar exclusão definitiva?")) enviarRequisicao('/api/excluir', {id: id}); }
+
+    function processarCSV(event) {
+        const file = event.target.files[0]; if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const textoLimpo = e.target.result.replace(/\r/g, ''); 
+            const linhas = textoLimpo.split('\n').map(l => l.trim()).filter(l => l);
+            const loteArr = [];
+            for (let i = 1; i < linhas.length; i++) {
+                const col = linhas[i].split(',');
+                if (col.length >= 5) {
+                    let lote, qtd, val, ent;
+                    if(col.length > 5) { lote = col[2].trim(); qtd = parseFloat(col[3].trim()); val = col[4].trim(); ent = col[5].trim(); } 
+                    else { qtd = parseFloat(col[2].trim()); val = col[3].trim(); ent = col[4].trim(); let [ano, mes] = ent.split('-'); lote = `Lote ${mes}/${ano}`; }
+                    loteArr.push({ nome: col[0].trim(), categoria: col[1].trim(), lote: lote, quantidade: qtd, validade: val, entrada: ent });
+                }
+            }
+            if (loteArr.length > 0) enviarRequisicao('/api/importar_lote', loteArr).then(() => alert(`${loteArr.length} produtos importados!`));
+            else alert("Nenhum dado válido encontrado.");
+        };
+        reader.readAsText(file); event.target.value = ''; 
+    }
+
+    carregarDados();
+</script>
+
+</body>
+</html>
