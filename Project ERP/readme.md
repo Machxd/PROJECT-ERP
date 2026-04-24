@@ -16,7 +16,7 @@ ERP_ANALYTICS/
 ├── database.py                     # Criação e estrutura das tabelas SQL
 ├── operacoes.py                    # Lógica de negócio (CRUD e Movimentações)
 ├── servidor.py                     # API HTTP com autenticação
-├── login.html                      # Tela de login
+├── login.html                      # Tela de login 
 ├── index.html                      # Interface principal (SPA)
 ├── dados_exemplo.csv               # Arquivo CSV de exemplo para importação
 ├── relatorio_dados_estruturados.md # Relatório técnico do projeto
@@ -33,7 +33,13 @@ ERP_ANALYTICS/
 - Pesquisa em tempo real por nome, categoria e lote
 - Filtro por mês de entrada
 - Histórico completo de movimentações
-- Sistema de login com sessão
+- Sistema de login com sessão por token
+  - Design Glassmorphism com formas animadas no fundo
+  - Tipografia: DM Sans + Fraunces (Google Fonts)
+  - Toggle para mostrar/ocultar senha
+  - Navegação por teclado (Tab entre campos, Enter para enviar)
+  - Animação de shake em erros de autenticação
+  - Mensagens de erro descritivas retornadas pelo servidor
 - Tema claro e escuro
 
 ## Importação de Dados
