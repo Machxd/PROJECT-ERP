@@ -1,4 +1,4 @@
-# MeriU Gestao + Loja Online
+# ERP + Loja Online
 
 Sistema local de gestao comercial para estoque, validade, pedidos e loja online. O projeto roda com Python puro, SQLite e front-end HTML/CSS/JS.
 
